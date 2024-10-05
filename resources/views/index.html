@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Product API Consumer</title>
+    </head>
+    <body>
+        <h1>Product List</h1>
+        <div id="product-list"></div>
+
+        <h2>Add New Product</h2>
+        <form id="product-form">
+            <label for="name">Name:</label>
+            <input type="text" id="name" required /><br />
+
+            <label for="price">Price:</label>
+            <input type="number" id="price" required /><br />
+
+            <label for="stock">Stock:</label>
+            <input type="number" id="stock" required /><br />
+
+            <button type="submit">Add Product</button>
+        </form>
+
+        <a href="/purchase">Purchase</a>
+
+        <script>
+            const apiUrl = "http://127.0.0.1:8000/api/products";
+
+            // Fetch product list
+            function fetchProducts() {
+                fetch(apiUrl)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        let productList =
+                            document.getElementById("product-list");
+                        productList.innerHTML = "";
+                        data.forEach((product) => {
+                            productList.innerHTML += `
+                            <p>
+                                <strong>${product.name}</strong><br>
+                                Price: Rp${product.price} <br>
+                                Stock: ${product.stock}
+                            </p>`;
+                        });
+                    })
+                    .catch((error) =>
+                        console.error("Error fetching products:", error)
+                    );
+            }
+
+            // Add new product
+            document
+                .getElementById("product-form")
+                .addEventListener("submit", function (e) {
+                    e.preventDefault();
+
+                    const name = document.getElementById("name").value;
+                    const price = document.getElementById("price").value;
+                    const stock = document.getElementById("stock").value;
+
+                    fetch(apiUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            price: price,
+                            stock: stock,
+                        }),
+                    })
+                        .then((response) => {
+                            if (response.status === 201) {
+                                return response.json();
+                            } else {
+                                throw new Error("Failed to add product");
+                            }
+                        })
+                        .then((data) => {
+                            console.log("Product added:", data);
+                            fetchProducts(); // Update the product list after adding
+                        })
+                        .catch((error) =>
+                            console.error("Error adding product:", error)
+                        );
+                });
+
+            // Fetch products when the page loads
+            fetchProducts();
+        </script>
+    </body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Keranjang Belanja</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 20px;
+            }
+            .product-card,
+            .cart-card {
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                padding: 20px;
+                margin: 10px;
+                width: 200px;
+                text-align: center;
+            }
+            .product-card h2,
+            .cart-card h2 {
+                font-size: 20px;
+            }
+            .add-to-cart,
+            .checkout {
+                background-color: #4caf50;
+                color: white;
+                border: none;
+                padding: 10px;
+                cursor: pointer;
+                border-radius: 5px;
+            }
+            #cartContainer {
+                display: none; /* Sembunyikan keranjang sampai dibuka */
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Pilih Produk untuk Dibeli</h1>
+        <div id="productsContainer"></div>
+        <button id="viewCart">Lihat Keranjang</button>
+        <div id="cartContainer">
+            <h2>Keranjang Belanja</h2>
+            <div id="cartItems"></div>
+            <button id="checkoutButton" class="checkout">Beli Semua</button>
+        </div>
+        <div id="result"></div>
+
+        <script>
+            const cart = [];
+
+            // Mengambil daftar produk dari API dan menampilkannya dalam kartu
+            function fetchProducts() {
+                fetch("http://127.0.0.1:8000/api/products")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const productsContainer =
+                            document.getElementById("productsContainer");
+                        data.forEach((product) => {
+                            const card = document.createElement("div");
+                            card.className = "product-card";
+                            card.innerHTML = `
+                            <h2>${product.name}</h2>
+                            <p>Harga: ${product.price}</p>
+                            <p>Stok: ${product.stock}</p>
+                            <button class="add-to-cart" data-id="${product.id}">Tambahkan ke Keranjang</button>
+                        `;
+                            productsContainer.appendChild(card);
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching products:", error);
+                    });
+            }
+
+            // Menghandle pembelian produk saat tombol ditekan
+            document
+                .getElementById("productsContainer")
+                .addEventListener("click", function (event) {
+                    if (event.target.classList.contains("add-to-cart")) {
+                        const productId = event.target.getAttribute("data-id");
+                        const productName =
+                            event.target.parentElement.querySelector(
+                                "h2"
+                            ).innerText;
+
+                        // Tambahkan produk ke keranjang
+                        cart.push(productId);
+                        alert(`${productName} telah ditambahkan ke keranjang!`);
+                    }
+                });
+
+            // Tampilkan keranjang belanja
+            document
+                .getElementById("viewCart")
+                .addEventListener("click", function () {
+                    const cartItemsContainer =
+                        document.getElementById("cartItems");
+                    cartItemsContainer.innerHTML = ""; // Bersihkan isi keranjang
+                    cart.forEach((productId) => {
+                        const cartItem = document.createElement("div");
+                        cartItem.innerText = `Produk ID: ${productId}`;
+                        cartItemsContainer.appendChild(cartItem);
+                    });
+                    document.getElementById("cartContainer").style.display =
+                        "block"; // Tampilkan keranjang
+                });
+
+            // Proses pembelian semua barang di keranjang
+            document
+                .getElementById("checkoutButton")
+                .addEventListener("click", function () {
+                    if (cart.length === 0) {
+                        alert("Keranjang kosong!");
+                        return;
+                    }
+
+                    const apiUrl = "http://127.0.0.1:8000/api/purchase";
+
+                    fetch(apiUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            productIds: cart, // Kirim semua ID produk yang ada di keranjang
+                        }),
+                    })
+                        .then((response) => {
+                            if (!response.ok) {
+                                return response.text().then((text) => {
+                                    throw new Error(text);
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then((data) => {
+                            alert(
+                                "Pembelian berhasil! Stok produk diperbarui."
+                            );
+                            cart.length = 0; // Kosongkan keranjang setelah pembelian berhasil
+                            document.getElementById(
+                                "cartContainer"
+                            ).style.display = "none"; // Sembunyikan keranjang
+                        })
+                        .catch((error) => {
+                            console.error("Error:", error);
+                            alert("Terjadi kesalahan: " + error.message);
+                        });
+                });
+
+            // Memanggil fungsi untuk mengambil produk saat halaman dimuat
+            fetchProducts();
+        </script>
+    </body>
+</html>
